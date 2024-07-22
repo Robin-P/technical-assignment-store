@@ -80,25 +80,16 @@ export class Store implements IStore {
 		let current = this as any;
 		const last = keys.pop() as string;
 		for (const key of keys) {
-			if (!current[key]) current[key] = {};
-
+			if (!current[key]) current[key] = new Store();
 			current = current[key];
 		}
 
 		if (typeof value === 'object') {
-			current[last] = {};
-			for (const key in value as JSONObject) {
-				const valueObj = (value as any)[key];
-				if (!current[last][key])
-					current[last][key] = typeof (value as any)[key] === 'object' ? new Store() : {};
-
-				if (typeof (value as any)[key] === 'object')
-					for (const subKey in valueObj) current[last][key][subKey] = valueObj[subKey];
-				else current[last][key] = valueObj;
-			}
+			current[last] = new Store();
+			for (const key in value) this.write(`${path}:${key}`, (value as any)[key]);
 		} else current[last] = value;
 
-		return current[last];
+		return this;
 	}
 
 	writeEntries(entries: JSONObject): void {
