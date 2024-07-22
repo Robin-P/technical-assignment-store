@@ -31,7 +31,11 @@ export class Store implements IStore {
 
 	allowedToRead(key: string): boolean {
 		const keys = key.split(':');
-		if (keys.length >= 2 && (typeof (this as any)[keys[0]] === 'function' || keys[0] === 'user')) return true;
+		if (
+			keys.length >= 2 &&
+			(typeof (this as any)[keys[0]] === 'function' || typeof (this as any)[keys[0]] === 'object')
+		)
+			return true;
 
 		const foundPolicy = this.restrictions?.get(key);
 		if (foundPolicy && !readPossibilities.includes(foundPolicy)) return false;
@@ -41,7 +45,11 @@ export class Store implements IStore {
 
 	allowedToWrite(key: string): boolean {
 		const keys = key.split(':');
-		if (keys.length >= 2 && (typeof (this as any)[keys[0]] === 'function' || keys[0] === 'user')) return true;
+		if (
+			keys.length >= 2 &&
+			(typeof (this as any)[keys[0]] === 'function' || typeof (this as any)[keys[0]] === 'object')
+		)
+			return true;
 
 		const foundPolicy = this.restrictions?.get(key);
 		if (foundPolicy && !writePossibilities.includes(foundPolicy)) return false;
@@ -56,7 +64,7 @@ export class Store implements IStore {
 
 		let current = this as any;
 		for (const key of keys) {
-			if (current[key] === undefined) throw new Error(`Reading ${path} is not existing.`);
+			if (!current[key]) throw new Error(`Reading ${path} is not existing.`);
 
 			current = typeof current[key] === 'function' ? current[key]() : current[key];
 		}
@@ -72,11 +80,23 @@ export class Store implements IStore {
 		let current = this as any;
 		const last = keys.pop() as string;
 		for (const key of keys) {
-			if (current[key] === undefined) current[key] = {};
+			if (!current[key]) current[key] = {};
 
 			current = current[key];
 		}
-		current[last] = value;
+
+		if (typeof value === 'object') {
+			current[last] = {};
+			for (const key in value as JSONObject) {
+				const valueObj = (value as any)[key];
+				if (!current[last][key])
+					current[last][key] = typeof (value as any)[key] === 'object' ? new Store() : {};
+
+				if (typeof (value as any)[key] === 'object')
+					for (const subKey in valueObj) current[last][key][subKey] = valueObj[subKey];
+				else current[last][key] = valueObj;
+			}
+		} else current[last] = value;
 
 		return current[last];
 	}
@@ -88,7 +108,7 @@ export class Store implements IStore {
 	entries(): JSONObject {
 		const entries = {} as JSONObject;
 		this.restrictions?.forEach((permission: Permission, key: string) => {
-			if (!['r', 'rw'].includes(permission)) return;
+			if (!readPossibilities.includes(permission)) return;
 
 			entries[key] = (this as any)[key];
 		});

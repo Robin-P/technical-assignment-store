@@ -117,14 +117,14 @@ describe('Nested Store Operations', () => {
 		expect(store.read('b:c')).toBe('value2');
 	});
 
-	// it('should be able to loop on a store', () => {
-	// 	const store = new Store();
-	// 	const entries: JSONObject = { value: 'value', store: { value: 'value' } };
-	// 	store.write('deep', entries);
-	// 	const cStore = store.read('deep:store') as Store;
-	// 	cStore.write('deep', entries);
-	// 	expect(store.read('deep:store:deep:store:value')).toBe('value');
-	// });
+	it('should be able to loop on a store', () => {
+		const store = new Store();
+		const entries: JSONObject = { value: 'value', store: { value: 'value' } };
+		store.write('deep', entries);
+		const cStore = store.read('deep:store') as Store;
+		cStore.write('deep', entries);
+		expect(store.read('deep:store:deep:store:value')).toBe('value');
+	});
 });
 
 /*
